@@ -49,6 +49,17 @@ def jsonlim(obj, max_level=-1, out: STDOUT, indent: " "*4, level: 0, prefix: "",
 end
 
 if __FILE__ == $0
-  lvl = Integer($*.shift)
-  jsonlim JSON.load($<), lvl
+  require 'optparse'
+  require 'yaml'
+
+  lvl = nil
+  formats = {'json'=>JSON, 'yaml'=>YAML}
+  format = 'json'
+
+  OptionParser.new do |op|
+    op.on("-l", "--level=N", Integer, "level up to which unfold") { |n| lvl = n }
+    op.on("-f", "--input-format=F", formats.keys.join(?,)) { |f| format = f }
+  end.parse!
+
+  jsonlim formats[format].load($<), *[lvl].compact
 end
