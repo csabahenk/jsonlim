@@ -2,7 +2,24 @@
 
 require 'json'
 
-def jsonlim(obj, max_level=nil, out: STDOUT, indent: " "*4, level: 0, prefix: "", postfix: "")
+def jsonlim(obj, max_level=-1, out: STDOUT, indent: " "*4, level: 0, prefix: "", postfix: "")
+  depth = proc { |o|
+    case o
+    when [],{}
+      0
+    when Hash
+      o.values.map(&depth).max + 1
+    when Array
+      o.map(&depth).max + 1
+    else
+      0
+    end
+  }
+
+  if max_level and max_level < 0
+    max_level = [depth[obj]+max_level, 0].max
+  end
+
   if (max_level||level+1) <= level or !(Hash === obj or Array === obj) or obj.empty?
     return out << indent*level + prefix + obj.to_json + postfix + "\n"
   end
