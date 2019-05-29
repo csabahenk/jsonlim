@@ -37,7 +37,7 @@ def jsonlim(obj, max_level=-1, out: STDOUT, indent: " "*4, level: 0, prefix: "",
     obj.each_with_index { |w,i|
       k,v=w
       jsonlim(v, max_level, out: out, indent: indent, level: level+1,
-              prefix: k.to_json + ": ", postfix: (i==obj.size-1) ? "" : ?,)
+              prefix: k.to_s.to_json + ": ", postfix: (i==obj.size-1) ? "" : ?,)
     }
   when Array
     obj.each_with_index { |v,i|
