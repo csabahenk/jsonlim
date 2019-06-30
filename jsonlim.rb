@@ -5,26 +5,28 @@ require 'json'
 module JSONlim
 extend self
 
+  HEIGHT = :height
+
+  def height obj
+    case obj
+    when [],{}
+      0
+    when Hash
+      obj.values.map{|w| height w }.max + 1
+    when Array
+      obj.map{|v| height v }.max + 1
+    else
+      0
+    end
+  end
+
   private def format_rec(obj, max_depth=-1, out: STDOUT, indent: " "*4,
                          depth: 0, prefix: "", postfix: "")
-    height = proc { |o|
-      case o
-      when [],{}
-        0
-      when Hash
-        o.values.map(&height).max + 1
-      when Array
-        o.map(&height).max + 1
-      else
-        0
-      end
-    }
-
-    if max_depth and max_depth < 0
-      max_depth = [height[obj]+max_depth, 0].max
+    if max_depth != HEIGHT and max_depth < 0
+      max_depth = [height(obj)+max_depth, 0].max
     end
 
-    if (max_depth||depth+1) <= depth or !(Hash === obj or Array === obj) or obj.empty?
+    if (max_depth != HEIGHT and max_depth <= depth) or !(Hash === obj or Array === obj) or obj.empty?
       return out << indent*depth + prefix + obj.to_json + postfix + "\n"
     end
 
@@ -62,14 +64,30 @@ if __FILE__ == $0
   require 'optparse'
   require 'yaml'
 
-  lvl = nil
+  depth = nil
   formats = {'json'=>JSON, 'yaml'=>YAML}
   format = 'json'
+  height = false
 
   OptionParser.new do |op|
-    op.on("-d", "--depth=N", Integer, "depth up to which unfold") { |n| lvl = n }
+    op.on("-d", "--depth=N", "depth up to which unfold (integer or 'height' or '∞')") { |n| depth = n }
     op.on("-f", "--input-format=F", formats.keys.join(?,)) { |f| format = f }
+    op.on("-H", "--show-height", "show height of object") { height = true }
   end.parse!
 
-  JSONlim.format formats[format].load($<), *[lvl].compact
+  depth = case depth
+  when nil
+    nil
+  when "height", "infinity", "infty", ?∞
+    JSONlim::HEIGHT
+  else
+    Integer(depth)
+  end
+
+  obj = formats[format].load($<)
+  if height
+    p JSONlim.height obj
+  else
+    JSONlim.format obj, *[depth].compact
+  end
 end
