@@ -5,9 +5,9 @@ require 'json'
 module JSONlim
 extend self
 
-  HEIGHT = :height
+  INFINITY = :∞
 
-  def height obj, max_height: HEIGHT
+  def height obj, max_height: INFINITY
     case obj
     when Hash,Array
       return 0 if obj.empty?
@@ -15,7 +15,7 @@ extend self
       return 0
     end
 
-    return HEIGHT if max_height == 0
+    return INFINITY if max_height == 0
 
     case obj
     when Hash
@@ -23,23 +23,19 @@ extend self
     when Array
       obj.each
     end.lazy.map {|v|
-      h = height v, max_height: max_height == HEIGHT ? HEIGHT : max_height-1
-      return HEIGHT if h == HEIGHT
+      h = height v, max_height: max_height == INFINITY ? INFINITY : max_height-1
+      return INFINITY if h == INFINITY
       h
     }.max + 1
   end
 
   private def format_rec(obj, max_depth: nil, min_height: nil, out: STDOUT, indent: " "*4,
                          depth: 0, prefix: "", postfix: "")
-    if Integer === max_depth and max_depth < 0
-      max_depth = [height(obj)+max_depth, 0].max
-    end
-
     if (!(Hash === obj or Array === obj) or obj.empty? or case true
       when !!max_depth
-        max_depth != HEIGHT and max_depth <= depth
+        max_depth != INFINITY and max_depth <= depth
       when !!min_height
-        height(obj, max_height: min_height) != HEIGHT
+        height(obj, max_height: min_height) != INFINITY
       else
         raise ArgumentError, "missing parameters"
       end
@@ -77,6 +73,13 @@ extend self
     unless max_depth or min_height
       max_depth = -1
     end
+    max_depth,min_height = [max_depth,min_height].map { |v|
+      if Integer === v and v < 0
+        [height(obj)+v, 0].max
+      else
+        v
+      end
+    }
 
     format_rec obj, max_depth: max_depth, min_height: min_height, out: out, indent: indent
   end
@@ -93,21 +96,23 @@ if __FILE__ == $0
   format = 'json'
   show_height = false
 
+  parse_numarg = proc do |v|
+    case v
+    when nil
+      nil
+    when "infinity", "infty", ?∞
+      JSONlim::INFINITY
+    else
+      Integer(v)
+    end
+  end
+
   OptionParser.new do |op|
-    op.on("-d", "--depth=N", "depth up to which unfold (integer or 'height' or '∞')") { |n| depth = n }
-    op.on("-h", "--height=N", "height over which unfold", Integer) { |n| height = n }
+    op.on("-d", "--depth=N", "depth up to which unfold (integer or 'inf(ini)ty' or '∞')") { |n| depth = parse_numarg[n] }
+    op.on("-h", "--height=N", "height over which unfold (integer or 'inf(ini)ty' or '∞')") { |n| height = parse_numarg[n] }
     op.on("-f", "--input-format=F", formats.keys.join(?,)) { |f| format = f }
     op.on("-H", "--show-height", "show height of object") { show_height = true }
   end.parse!
-
-  depth = case depth
-  when nil
-    nil
-  when "height", "infinity", "infty", ?∞
-    JSONlim::HEIGHT
-  else
-    Integer(depth)
-  end
 
   obj = formats[format].load($<)
   if show_height
