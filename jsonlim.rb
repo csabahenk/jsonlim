@@ -29,7 +29,7 @@ extend self
     }.max + 1
   end
 
-  private def format_rec(obj, max_depth: nil, min_height: nil, out: STDOUT, indent: " "*4,
+  def format_rec(obj, max_depth: nil, min_height: nil, out: STDOUT, indent: " "*4,
                          depth: 0, prefix: "", postfix: "", &repr)
     if (!(Hash === obj or Array === obj) or obj.empty? or case true
       when !!max_depth
@@ -68,6 +68,7 @@ extend self
     end
     out << indent*depth + delim_close + postfix + "\n"
   end
+  private :format_rec
 
   def format obj, max_depth: nil, min_height: nil, out: STDOUT, indent: " "*4, &repr
     unless max_depth or min_height
