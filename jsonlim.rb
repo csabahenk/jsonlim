@@ -30,7 +30,7 @@ extend self
   end
 
   private def format_rec(obj, max_depth: nil, min_height: nil, out: STDOUT, indent: " "*4,
-                         depth: 0, prefix: "", postfix: "")
+                         depth: 0, prefix: "", postfix: "", &repr)
     if (!(Hash === obj or Array === obj) or obj.empty? or case true
       when !!max_depth
         max_depth != INFINITY and max_depth <= depth
@@ -40,7 +40,7 @@ extend self
         raise ArgumentError, "missing parameters"
       end
     )
-      return out << indent*depth + prefix + obj.to_json + postfix + "\n"
+      return out << indent*depth + prefix + repr[obj] + postfix + "\n"
     end
 
     delim_open, delim_close = case obj
@@ -57,19 +57,19 @@ extend self
         k,v=w
         format_rec(v, max_depth: max_depth, min_height: min_height, out: out, indent: indent,
                    depth: depth + 1,
-                   prefix: k.to_s.to_json + ": ", postfix: (i==obj.size-1) ? "" : ?,)
+                   prefix: k.to_s.to_json + ": ", postfix: (i==obj.size-1) ? "" : ?,, &repr)
       }
     when Array
       obj.each_with_index { |v,i|
         format_rec(v, max_depth: max_depth, min_height: min_height, out: out, indent: indent,
                    depth: depth + 1,
-                   postfix: (i==obj.size-1) ? "" : ?,)
+                   postfix: (i==obj.size-1) ? "" : ?,, &repr)
       }
     end
     out << indent*depth + delim_close + postfix + "\n"
   end
 
-  def format obj, max_depth: nil, min_height: nil, out: STDOUT, indent: " "*4
+  def format obj, max_depth: nil, min_height: nil, out: STDOUT, indent: " "*4, &repr
     unless max_depth or min_height
       max_depth = -1
     end
@@ -81,7 +81,8 @@ extend self
       end
     }
 
-    format_rec obj, max_depth: max_depth, min_height: min_height, out: out, indent: indent
+    repr ||= :to_json
+    format_rec obj, max_depth: max_depth, min_height: min_height, out: out, indent: indent, &repr
   end
 
 end
