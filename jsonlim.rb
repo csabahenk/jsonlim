@@ -31,16 +31,30 @@ extend self
 
   def format_rec(obj, max_depth: nil, min_height: nil, out: STDOUT, indent: " "*4,
                          depth: 0, prefix: "", postfix: "", &repr)
-    if (!(Hash === obj or Array === obj) or obj.empty? or case true
-      when !!max_depth
-        max_depth != INFINITY and max_depth <= depth
-      when !!min_height
-        height(obj, max_height: min_height) != INFINITY
-      else
-        raise ArgumentError, "missing parameters"
+    rep = case obj
+    when Array,Hash
+      if obj.empty?
+        obj.inspect
+      elsif (
+        case true
+        when !!max_depth
+          max_depth != INFINITY and max_depth <= depth
+        when !!min_height
+          height(obj, max_height: min_height) != INFINITY
+        else
+          raise ArgumentError, "missing parameters"
+        end
+      )
+        repr[obj]
       end
-    )
-      return out << indent*depth + prefix + repr[obj] + postfix + "\n"
+    when Integer
+      # optimized rendering for Integers, ~5x faster
+      obj.inspect
+    else
+      obj.to_json
+    end
+    if rep
+      return out << indent*depth + prefix + rep + postfix + "\n"
     end
 
     delim_open, delim_close = case obj
