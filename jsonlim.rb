@@ -106,9 +106,19 @@ if __FILE__ == $0
   require 'optparse'
   require 'yaml'
 
+  module JSONl
+
+    def self.load src
+      src.each_with_object([]) do |e, aa|
+        aa << JSON.load(e)
+      end
+    end
+
+  end
+
   depth = nil
   height = nil
-  formats = {'json'=>JSON, 'yaml'=>YAML}
+  formats = {'json'=>JSON, 'jsonl'=>JSONl, 'yaml'=>YAML}
   format = 'json'
   show_height = false
 
